@@ -31,16 +31,16 @@ class Keyboard:
         ]
 
 def forward():
-    communication.speed = communication.REGULAR_SPEED_FORWARD
+    communication.move_forward()
 
 def backward():
-    communication.speed = -communication.REGULAR_SPEED_FORWARD
+    communication.move_backward()
 
 def left():
-    communication.turn = max(communication.turn - communication.TURN_CHANGE, communication.MAX_LEFT)
+    communication.turn_left()
 
 def right():
-    communication.turn = min(communication.turn + communication.TURN_CHANGE, communication.MAX_RIGHT)
+    communication.turn_right()
 
 def quit():
     communication.finished = True
@@ -82,11 +82,12 @@ def main():
             time.sleep(0.6)  # secons to make a decision
             if communication.send_command():
                 step += 1
+                time.sleep(0.3)
                 communication.download_and_save_photo(folder / f"{step}.png")
                 decisions["speed"].append(communication.prev_speed)
                 decisions["turn"].append(communication.prev_turn)
             communication.reset()
-    except InterruptedError:
+    except KeyboardInterrupt:
         print("Got interrupt - quiting ...")
 
     communication.reset(full=True)

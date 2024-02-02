@@ -9,7 +9,7 @@ MAX_SPEED = 250
 MIN_SPEED = -250
 REGULAR_SPEED_TURN = 250
 REGULAR_SPEED = 180
-REGULAR_SPEED_FORWARD = 140
+REGULAR_SPEED_FORWARD = 110
 
 MAX_RIGHT = 27
 TURN_CHANGE = 10
@@ -50,6 +50,21 @@ def download_and_save_photo(file: Path):
 def rescale(value, in_min, in_max, out_min, out_max):
     return int((value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min)
 
+def move_forward():
+    global speed
+    speed = REGULAR_SPEED_FORWARD
+
+def move_backward():
+    global speed
+    speed = -REGULAR_SPEED_FORWARD
+
+def turn_left():
+    global turn
+    turn = max(turn - TURN_CHANGE, MAX_LEFT)
+
+def turn_right():
+    global turn
+    turn = min(turn + TURN_CHANGE, MAX_RIGHT)
 
 def update_speed(value, reverse=False):
     global speed
