@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 import tqdm
 
 from lib.nn import NeuralNet
@@ -14,15 +14,19 @@ dataset = RoboDataset("images*")
 criterion = nn.MSELoss()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 
-trainloader = DataLoader(dataset, batch_size=1, shuffle=True)
+train, test = random_split(dataset, [0.9, 0.1])
 
-pbar = tqdm.tqdm()
+train_loader = DataLoader(train, batch_size=1, shuffle=True)
+test_loader = DataLoader(test, batch_size=1, shuffle=False)
 
 losses = []
 
-for epoch in range(40):  # loop over the dataset multiple times
-    running_loss = 0.0
-    for i, data in enumerate(trainloader, 0):
+progress = tqdm.tqdm(range(40), unit="epoch")
+for epoch in progress:  # loop over the dataset multiple times
+    train_running_loss = 0.0
+    test_running_loss = 0.0
+
+    for i, data in enumerate(train_loader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
 
@@ -32,14 +36,24 @@ for epoch in range(40):  # loop over the dataset multiple times
         # forward + backward + optimize
         outputs = net(inputs)
         loss = criterion(outputs, labels)
-        running_loss += loss
+        train_running_loss += loss
         loss.backward()
         optimizer.step()
 
-    losses.append(running_loss)
-    pbar.set_description(f"Training, loss={running_loss}")
-    running_loss = 0.0
-    pbar.update()
+    with torch.no_grad():
+        for i, data in enumerate(test_loader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
+
+            # forward + backward + optimize
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+            test_running_loss += loss
+
+    losses.append(train_running_loss)
+    progress.set_description(f"Training, train_loss={train_running_loss}, val_loss={test_running_loss}")
+    train_running_loss = 0.0
+    test_running_loss = 0.0
 
 print("Finished Training")
 torch.save(net.state_dict(), SAVE_PATH)
