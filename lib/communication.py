@@ -3,7 +3,7 @@ from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
 
-ROBOT_IP = "http://192.168.219.157"
+ROBOT_IP = "http://192.168.183.157"
 
 MAX_SPEED = 250
 MIN_SPEED = -250
@@ -58,6 +58,10 @@ def move_backward():
     global speed
     speed = -REGULAR_SPEED_FORWARD
 
+def move(v: int):
+    global speed
+    speed = move
+
 def turn_left():
     global turn
     turn = max(turn - TURN_CHANGE, MAX_LEFT)
@@ -65,6 +69,10 @@ def turn_left():
 def turn_right():
     global turn
     turn = min(turn + TURN_CHANGE, MAX_RIGHT)
+
+def turn_wheel(v: int):
+    global turn
+    turn = v
 
 def update_speed(value, reverse=False):
     global speed

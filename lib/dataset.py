@@ -17,6 +17,28 @@ from . import communication
 IMAGE_SHAPE = (64, 64)
 
 
+def load_image_from_path(path: Path):
+    i: np.ndarray = cv2.imread(path.as_posix())
+    i = cv2.cvtColor(i, cv2.COLOR_RGB2GRAY)
+    i = cv2.resize(i, IMAGE_SHAPE)
+    i = np.array(i, dtype=np.float32)
+    i = i / np.max(i)
+    return i
+
+def decision_into_nn_space(decision):
+    speed, turn = decision
+    return (
+        rescale(speed, (-255, 255), (-1, 1)),
+        rescale(turn, (communication.MAX_LEFT, communication.MAX_RIGHT), (-1, 1)),
+    )
+
+def decision_into_robot_space(decision):
+    speed, turn = decision
+    return (
+        rescale(speed, (-1, 1), (-255, 255)),
+        rescale(turn, (-1, 1), (communication.MAX_LEFT, communication.MAX_RIGHT)),
+    )
+
 class SubRoboDataset:
     '''
     Represents one sub dataset - one collection of photos.
@@ -32,11 +54,7 @@ class SubRoboDataset:
     def _get_decision(self, idx: int):
         speed = self.decisions["speed"][idx]
         turn = self.decisions["turn"][idx]
-
-        return (
-            rescale(speed, (-255, 255), (-1, 1)),
-            rescale(turn, (communication.MAX_LEFT, communication.MAX_RIGHT), (-1, 1)),
-        )
+        return decision_into_nn_space((speed, turn))
 
     def __len__(self):
         return len(self.image_paths)
@@ -47,11 +65,7 @@ class SubRoboDataset:
         if idx < 0:
             raise IndexError("Index < 0")
 
-        i: np.ndarray = cv2.imread(self.image_paths[idx].as_posix())
-        i = cv2.cvtColor(i, cv2.COLOR_RGB2GRAY)
-        i = cv2.resize(i, IMAGE_SHAPE)
-        i = np.array(i, dtype=np.float32)
-        i = i / np.max(i)
+        i: np.ndarray = load_image_from_path(self.image_paths[idx])
         return i, torch.tensor(np.array(self._get_decision(idx), dtype=np.float32))
 
 
