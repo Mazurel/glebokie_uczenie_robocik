@@ -60,7 +60,7 @@ def move_backward():
 
 def move(v: int):
     global speed
-    speed = move
+    speed = v
 
 def turn_left():
     global turn
@@ -96,8 +96,8 @@ def send_command() -> bool:
     """Returns true when something was sent."""
     global prev_speed, prev_turn
     if speed != prev_speed or turn != prev_turn:
-        print("Sending command ...")
         url = f"{ROBOT_IP}/drive?speed={speed}&turn={turn}"
+        print(f"Sending command ({url}) ...")
         session.get(url, timeout=200)
         prev_speed, prev_turn = speed, turn
         return True

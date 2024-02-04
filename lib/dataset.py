@@ -1,10 +1,8 @@
 from pathlib import Path
 import json
 import glob
-import os
 from functools import lru_cache
-
-os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
+import math
 
 import torch
 from torch.utils.data import Dataset
@@ -41,8 +39,8 @@ def decision_into_nn_space(decision):
 def decision_into_robot_space(decision):
     speed, turn = decision
     return (
-        rescale(speed, (-1, 1), (-255, 255)),
-        rescale(turn, (-1, 1), (communication.MAX_LEFT, communication.MAX_RIGHT)),
+        int(rescale(speed, (-1, 1), (-255, 255))),
+        int(rescale(turn, (-1, 1), (communication.MAX_LEFT, communication.MAX_RIGHT))),
     )
 
 class SubRoboDataset:
@@ -53,10 +51,25 @@ class SubRoboDataset:
         self.path = path
         self.augmentation_factor = augmentation_factor
 
-        self.image_paths = list(self.path.glob("*.png"))
-        self.image_paths.sort(key=lambda p: int(p.name.split(".")[0]))
+        image_paths = list(self.path.glob("*.png"))
+        image_paths.sort(key=lambda p: int(p.name.split(".")[0]))
 
         self.decisions = json.loads((path / "decisions.json").read_text())
+
+        self.data_cache: list[tuple[torch.Tensor, torch.Tensor]] = []
+        for i in range(len(image_paths)):
+            decision = self._get_decision(i)
+            s, t = (decision)
+            if math.isclose(s, 0): # doesn't make sense for our NN
+                continue
+
+            image: "torch.Tensor" = torch.tensor(load_image_from_path(image_paths[i]))
+            image = torch.unsqueeze(image, 0)
+            decision = torch.tensor(np.array(decision, dtype=np.float32))
+
+            self.data_cache.append(
+                (image, decision)
+            )
 
     def _get_decision(self, idx: int):
         speed = self.decisions["speed"][idx]
@@ -64,7 +77,7 @@ class SubRoboDataset:
         return decision_into_nn_space((speed, turn))
 
     def __len__(self):
-        return len(self.image_paths) * (self.augmentation_factor + 1)
+        return len(self.data_cache) * (self.augmentation_factor + 1)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         if idx >= len(self):
@@ -72,13 +85,13 @@ class SubRoboDataset:
         if idx < 0:
             raise IndexError("Index < 0")
 
-        true_idx = idx % len(self.image_paths)
+        true_idx = idx % len(self.data_cache)
+        image, decision = self.data_cache[true_idx]
 
-        i: "torch.Tensor" = torch.tensor(load_image_from_path(self.image_paths[true_idx]))
-        i = torch.unsqueeze(i, 0)
-        if idx > len(self.image_paths):
-            i = _data_transforms(i)
-        return i, torch.tensor(np.array(self._get_decision(true_idx), dtype=np.float32))
+        if idx > len(self.data_cache):
+            image = _data_transforms(image)
+
+        return image, decision
 
 
 class RoboDataset(Dataset):

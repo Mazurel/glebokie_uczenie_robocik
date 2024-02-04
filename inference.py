@@ -1,7 +1,5 @@
-import sys
 import time
 from pathlib import Path
-import json
 
 import torch
 from matplotlib import pyplot as plt
@@ -17,11 +15,13 @@ def main():
     try:
         while True:
             while True:
-                print("Enter 'yes' to make decision")
+                print("Enter 'y' or 'yes' to make decision")
                 s = input()
-                if s == "yes":
+                if s == "y" or s == "yes":
                     break
 
+            time.sleep(0.2)
+            communication.download_and_save_photo(Path("./tmp.png"))
             i = torch.tensor(load_image_from_path(Path("./tmp.png")))
 
             plt.imshow(i)
@@ -36,10 +36,10 @@ def main():
             print(f"Speed = {speed}")
             print(f"Turn = {turn}")
 
-            communication.move(int(speed))
-            communication.turn_wheel(int(turn))
+            communication.move(speed)
+            communication.turn_wheel(turn)
             communication.send_command()
-            time.sleep(0.6)
+            time.sleep(0.9)
             communication.reset()
             communication.send_command()
     except KeyboardInterrupt:

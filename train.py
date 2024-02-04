@@ -19,6 +19,9 @@ if __name__ == "__main__":
 
     train, test = random_split(dataset, [0.9, 0.1])
 
+    print(f"Training set length = {len(train)}")
+    print(f"Test set length = {len(test)}")
+
     train_loader = DataLoader(train, batch_size=1, shuffle=True)
     test_loader = DataLoader(test, batch_size=1, shuffle=False)
 
